@@ -8,7 +8,10 @@ const ns = 'http://www.w3.org/2000/svg';
 let level = 'easy', maze, position, steps, trail, hint, assisted, finished;
 let elapsed = 0, startedAt = null, pointer = null;
 let bests = {};
-try { bests = JSON.parse(localStorage.getItem('simple-maze-bests') || '{}') || {}; } catch { /* Storage is optional. */ }
+try {
+  const stored = JSON.parse(localStorage.getItem('simple-maze-bests') || '{}');
+  if (stored && typeof stored === 'object' && !Array.isArray(stored)) bests = stored;
+} catch { /* Storage is optional. */ }
 
 function element(name, attrs) {
   const node = document.createElementNS(ns, name);
@@ -129,7 +132,7 @@ document.querySelectorAll('[data-direction]').forEach(b => b.addEventListener('c
 const keys = { ArrowUp: 0, w: 0, ArrowRight: 1, d: 1, ArrowDown: 2, s: 2, ArrowLeft: 3, a: 3 };
 document.addEventListener('keydown', (event) => {
   if (event.altKey || event.ctrlKey || event.metaKey || $('#win-dialog').open) return;
-  if (event.target.closest('button, a, input, select, textarea')) return;
+  if (event.target.closest('input, select, textarea, [contenteditable=true]')) return;
   const direction = keys[event.key] ?? keys[event.key.toLowerCase()];
   if (direction === undefined) return;
   event.preventDefault(); go(direction);
