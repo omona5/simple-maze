@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101a1a">
+  <meta name="description" content="손끝으로 찾는 작은 탈출. 스와이프와 방향키로 즐기는 무료 미로 찾기 게임.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/style.css">
+  <title>simple maze — 작은 미로, 잠깐의 몰입</title>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="simple maze 처음으로"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M4 24V4h20v20H12V12h6v6M4 12h8M4 24h3"/></svg><span>simple<span class="brand-light">maze</span><span class="brand-dot">.</span></span></a>
+      <span class="top-caption">작은 미로, 잠깐의 몰입</span>
+    </header>
+
+    <section class="game" aria-labelledby="game-title">
+      <div class="intro"><p class="eyebrow">FIND YOUR WAY</p><h1 id="game-title">길은, 언제나 있어요<span>.</span></h1><p class="subtitle">복잡한 생각은 잠시 내려놓고, 출구를 찾아보세요.</p></div>
+      <div class="game-toolbar">
+        <div class="difficulty" role="group" aria-label="난이도 선택"><button data-level="easy" aria-pressed="true">가볍게 <span>9 × 9</span></button><button data-level="normal" aria-pressed="false">적당히 <span>15 × 15</span></button><button data-level="hard" aria-pressed="false">깊이 <span>21 × 21</span></button></div>
+        <button id="new-game" class="text-button"><span aria-hidden="true">↻</span> 새 미로</button>
+      </div>
+
+      <div class="board-shell">
+        <div class="stats"><div><span class="stat-label">플레이 시간</span><strong id="timer">00:00</strong></div><div><span class="stat-label">이동 횟수</span><strong id="moves">0<span class="stat-unit">회</span></strong></div><div><span class="stat-label">최고 기록</span><strong id="best">—</strong></div></div>
+        <div id="board" class="board" tabindex="0" role="application" aria-label="미로 게임. 방향키 또는 WASD로 이동하세요. 모바일에서는 스와이프하세요." aria-describedby="instructions"><svg id="maze" viewBox="0 0 400 400" role="img" aria-label="왼쪽 위의 주황색 점에서 오른쪽 아래 초록색 출구까지 이동하는 미로"></svg></div>
+        <div class="board-bottom"><div class="legend"><span><i class="player-key"></i>나</span><span><i class="exit-key"></i>출구</span></div><button id="hint" class="hint-button" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 14c0-3-3-3-3-7a6 6 0 0 1 12 0c0 4-3 4-3 7M7 14h6M8 17h4"/></svg>길 힌트</button></div>
+      </div>
+
+      <div class="controls-row"><p id="instructions"><span class="desktop-tip"><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> 방향키 또는 WASD로 이동</span><span class="mobile-tip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 13V5a2 2 0 0 1 4 0v6l1-1 5 3v5l-3 3h-6l-5-7a2 2 0 0 1 3-2l1 1Z"/></svg>미로 위를 스와이프해서 이동하세요</span></p><button id="restart" class="text-button">처음부터</button></div>
+      <div class="dpad" role="group" aria-label="이동 버튼"><button data-direction="0" aria-label="위로 이동">↑</button><button data-direction="3" aria-label="왼쪽으로 이동">←</button><span aria-hidden="true">✧</span><button data-direction="1" aria-label="오른쪽으로 이동">→</button><button data-direction="2" aria-label="아래로 이동">↓</button></div>
+      <p id="status" class="status" role="status" aria-live="polite">주황색 점을 움직여 초록색 출구에 도착하세요.</p>
+    </section>
+    <footer><span>조금 돌아가도 괜찮아요.</span><span>MADE FOR A LITTLE BREAK</span></footer>
+  </main>
+  <dialog id="win-dialog" aria-labelledby="win-title"><div class="win-icon" aria-hidden="true">✧</div><p class="eyebrow">YOU FOUND YOUR WAY</p><h2 id="win-title">잘 도착했어요!</h2><p id="win-summary"></p><p id="win-record"></p><button id="play-again" class="primary-button">다음 미로 만나기</button><button id="close-dialog" class="text-button">미로 돌아보기</button></dialog>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
