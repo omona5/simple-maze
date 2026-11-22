@@ -30,30 +30,30 @@ npm run build
 
 빌드 결과는 `dist/`입니다. 게임 실행에는 별도 서버나 데이터베이스가 필요하지 않습니다. 웹 폰트를 불러올 수 없는 환경에서는 시스템 글꼴로 표시합니다.
 
-## Cloudflare Pages 배포 (최초 1회)
+## GitHub Pages 자동 배포
 
-1. Cloudflare 대시보드 → **Workers & Pages** → **Create application** → **Pages** → **Import an existing Git repository**.
-2. GitHub를 연결하고 **omona5/simple-maze** 저장소를 선택합니다. GitHub 권한 요청이 나타나면 해당 저장소 접근을 허용합니다.
-3. 다음 설정으로 배포합니다.
-   - Project name: `simple-maze` (이미 사용 중이면 다른 이름)
-   - Production branch: `main`
-   - Framework preset: `None`
-   - Build command: `npm run build`
-   - Build output directory: `dist`
-   - Root directory: 비워두기 (저장소 루트)
-   - Environment variable: `NODE_VERSION` = `22`
-4. **Save and Deploy**를 누릅니다. 발급된 `*.pages.dev` 주소에서 게임을 확인합니다.
+호스팅은 GitHub Pages, 도메인 DNS는 Cloudflare를 사용합니다. Cloudflare Pages 프로젝트는 필요하지 않습니다.
 
-Git 연동이 완료되면 `main`에 푸시할 때 자동으로 재배포됩니다. API 토큰이나 GitHub Actions 배포 시크릿은 필요하지 않습니다. `Verify game` 워크플로는 테스트와 빌드만 확인합니다.
+`.github/workflows/check.yml`은 `main` 푸시 시 테스트 → 정적 빌드 → GitHub Pages 배포를 수행합니다. PR에서는 테스트와 빌드만 실행합니다. 별도 배포 토큰이나 저장소 시크릿은 필요하지 않습니다.
 
-## maze.omona.dev 연결
+저장소 **Settings → Pages → Build and deployment → Source**는 **GitHub Actions**로 설정합니다. **Custom domain**에는 `maze.omona.dev`를 등록합니다. `public/CNAME`에도 같은 도메인이 포함되어 있으며, Actions 배포에서는 저장소 Pages 설정에도 도메인을 등록해야 합니다.
 
-1. 배포한 Pages 프로젝트 → **Custom domains** → **Set up a custom domain**.
-2. `maze.omona.dev`를 입력하고 안내대로 활성화합니다.
-3. `omona.dev` DNS가 같은 Cloudflare 계정에 있다면 제시되는 DNS 레코드 추가를 승인합니다.
-4. 외부 DNS를 사용 중이라면 Cloudflare가 안내하는 대상(실제 발급된 `<프로젝트>.pages.dev`)으로 `maze` CNAME 레코드를 추가합니다. 기존 `maze` 레코드가 있으면 충돌 여부를 확인합니다.
-5. 도메인 상태가 **Active**가 되고 인증서가 발급된 뒤 https://maze.omona.dev 로 접속합니다.
+`dist/`를 배포하며, 상대 경로로 자산을 참조하므로 GitHub Pages 프로젝트 경로와 커스텀 도메인 모두 지원합니다. `public/.nojekyll`은 정적 파일을 그대로 서비스할 수 있도록 포함했습니다.
 
-**DNS 레코드만 먼저 만들지 말고 Pages의 Custom domains에 도메인을 반드시 등록하세요.** 실제 대상 호스트는 프로젝트 이름에 따라 달라집니다.
+## Cloudflare DNS 설정 (사용자)
 
-공식 문서: [정적 사이트 배포](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/), [빌드 설정](https://developers.cloudflare.com/pages/configuration/build-configuration/), [커스텀 도메인](https://developers.cloudflare.com/pages/configuration/custom-domains/).
+`omona.dev`의 DNS 관리에서 다음 레코드를 추가합니다.
+
+- Type: **CNAME**
+- Name: **maze**
+- Target: **omona5.github.io**
+- Proxy status: **DNS only** (회색 구름, 최초 인증서 발급 및 연결 확인용)
+- TTL: **Auto**
+
+대상에는 `https://` 또는 `/simple-maze`를 붙이지 않습니다. 기존 `maze` 레코드가 있으면 중복되지 않도록 수정합니다.
+
+DNS 반영 후 GitHub 저장소 **Settings → Pages**에서 도메인 확인이 완료되고 인증서가 발급되면 **Enforce HTTPS**를 켭니다. 인증서 발급에는 시간이 걸릴 수 있습니다. 이후 https://maze.omona.dev 에서 게임을 이용할 수 있습니다.
+
+커스텀 도메인이 설정된 동안 기본 https://omona5.github.io/simple-maze/ 주소는 커스텀 도메인으로 리디렉션될 수 있으므로 DNS 연결 전에는 최종 주소 접속이 실패할 수 있습니다.
+
+공식 문서: [GitHub Pages Actions 배포](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages), [커스텀 도메인 연결](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
