@@ -5,12 +5,15 @@ export const DIRECTIONS = [
   { dx: -1, dy: 0, opposite: 1 },
 ];
 
-export function generateMaze(size, random = Math.random) {
+export function generateMaze(size, random = Math.random, algorithm = 'backtracker') {
   const cells = Array.from({ length: size * size }, () => [true, true, true, true]);
   const visited = new Set([0]);
   const stack = [0];
   while (stack.length) {
-    const current = stack.at(-1);
+    // Growing Tree mixes fresh corridors with branches from earlier cells.
+    const index = algorithm === 'growing-tree' && random() >= .55
+      ? Math.floor(random() * stack.length) : stack.length - 1;
+    const current = stack[index];
     const x = current % size;
     const y = Math.floor(current / size);
     const options = DIRECTIONS.flatMap(({ dx, dy }, direction) => {
@@ -19,7 +22,7 @@ export function generateMaze(size, random = Math.random) {
       return nx >= 0 && nx < size && ny >= 0 && ny < size && !visited.has(next)
         ? [{ next, direction }] : [];
     });
-    if (!options.length) { stack.pop(); continue; }
+    if (!options.length) { stack.splice(index, 1); continue; }
     const { next, direction } = options[Math.floor(random() * options.length)];
     cells[current][direction] = false;
     cells[next][DIRECTIONS[direction].opposite] = false;
@@ -27,6 +30,26 @@ export function generateMaze(size, random = Math.random) {
     stack.push(next);
   }
   return { size, cells };
+}
+
+export function generateExtremeMaze(size, random = Math.random) {
+  let best, bestScore = -Infinity;
+  // Favor real decisions along the solution, rather than just increasing grid size.
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const maze = generateMaze(size, random, 'growing-tree');
+    const route = solve(maze, 0);
+    let junctions = 0, gap = 0, longestGap = 0;
+    for (const position of route) {
+      if (maze.cells[position].filter(wall => !wall).length >= 3) {
+        junctions++; gap = 0;
+      } else {
+        gap++; longestGap = Math.max(longestGap, gap);
+      }
+    }
+    const score = junctions + Math.min(route.length, size * 10) * .08 - longestGap * 1.5;
+    if (score > bestScore) { best = maze; bestScore = score; }
+  }
+  return best;
 }
 
 export function move(maze, position, direction) {

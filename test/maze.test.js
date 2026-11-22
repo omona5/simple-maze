@@ -1,11 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateMaze, move, slide, solve, DIRECTIONS } from '../public/maze.js';
+import { generateMaze, generateExtremeMaze, move, slide, solve, DIRECTIONS } from '../public/maze.js';
 
-for (const size of [9, 15, 21, 35]) {
-  test(`${size}×${size}: generated mazes are connected trees with closed borders and reciprocal walls`, () => {
+const generators = [
+  ...[9, 15, 21, 35].map(size => ({ size, generate: generateMaze, name: 'backtracker' })),
+  { size: 35, generate: generateExtremeMaze, name: 'extreme growing tree' },
+];
+for (const { size, generate, name } of generators) {
+  test(`${name} ${size}×${size}: generated mazes are connected trees with closed borders and reciprocal walls`, () => {
     for (let run = 0; run < 30; run++) {
-      const maze = generateMaze(size);
+      const maze = generate(size);
       let openings = 0;
       const reachable = new Set([0]);
       const queue = [0];
@@ -40,6 +44,36 @@ for (const size of [9, 15, 21, 35]) {
     }
   });
 }
+
+function seededRandom(seed) {
+  return () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+
+function branchingMetrics(maze) {
+  const route = solve(maze, 0);
+  let forks = 0, gap = 0, longestGap = 0;
+  for (const cell of route) {
+    if (maze.cells[cell].filter(wall => !wall).length >= 3) { forks++; gap = 0; }
+    else { gap++; longestGap = Math.max(longestGap, gap); }
+  }
+  return { forks, density: forks / route.length, longestGap };
+}
+
+test('extreme solutions have more decisions and shorter stretches without junctions', () => {
+  const old = { forks: 0, density: 0, longestGap: 0 };
+  const updated = { ...old };
+  for (let seed = 1; seed <= 32; seed++) {
+    const before = branchingMetrics(generateMaze(35, seededRandom(seed)));
+    const after = branchingMetrics(generateExtremeMaze(35, seededRandom(seed)));
+    for (const key of Object.keys(old)) { old[key] += before[key]; updated[key] += after[key]; }
+  }
+  assert.ok(updated.forks > old.forks * 1.15, 'solution paths should offer more forks overall');
+  assert.ok(updated.density > old.density * 2.5, 'decisions should be substantially more frequent');
+  assert.ok(updated.longestGap < old.longestGap * .5, 'long stretches without choices should shrink');
+});
 
 function fixture(paths) {
   const maze = { size: 5, cells: Array.from({ length: 25 }, () => [true, true, true, true]) };

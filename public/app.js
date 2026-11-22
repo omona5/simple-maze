@@ -1,4 +1,4 @@
-import { generateMaze, slide, solve } from './maze.js';
+import { generateMaze, generateExtremeMaze, slide, solve } from './maze.js';
 
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');
@@ -7,7 +7,7 @@ const levels = {
   easy: { size: 9, label: '가볍게' },
   normal: { size: 15, label: '적당히' },
   hard: { size: 21, label: '깊이' },
-  extreme: { size: 35, label: '익스트림' },
+  extreme: { size: 35, label: '익스트림', generate: generateExtremeMaze },
 };
 const ns = 'http://www.w3.org/2000/svg';
 let level = 'easy', maze, position, steps, trail, hint, assisted, finished;
@@ -120,7 +120,7 @@ function reset(newMaze = true) {
   if (animationFrame !== null) cancelAnimationFrame(animationFrame);
   animationFrame = null; segment = null; movementQueue = [];
   if ($('#win-dialog').open) $('#win-dialog').close();
-  if (newMaze) maze = generateMaze(levels[level].size);
+  if (newMaze) maze = (levels[level].generate || generateMaze)(levels[level].size);
   position = 0; steps = 0; trail = [0]; hint = false; assisted = false; finished = false;
   elapsed = 0; startedAt = null; pointer = null;
   $('#timer').textContent = '00:00';
