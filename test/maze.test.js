@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateMaze, move, solve, DIRECTIONS } from '../public/maze.js';
 
-for (const size of [9, 15, 21]) {
+for (const size of [9, 15, 21, 35]) {
   test(`${size}×${size}: generated mazes are connected trees with closed borders and reciprocal walls`, () => {
     for (let run = 0; run < 30; run++) {
       const maze = generateMaze(size);

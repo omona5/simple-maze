@@ -3,7 +3,12 @@ import { generateMaze, move, solve } from './maze.js';
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');
 const svg = $('#maze');
-const levels = { easy: { size: 9, label: '가볍게' }, normal: { size: 15, label: '적당히' }, hard: { size: 21, label: '깊이' } };
+const levels = {
+  easy: { size: 9, label: '가볍게' },
+  normal: { size: 15, label: '적당히' },
+  hard: { size: 21, label: '깊이' },
+  extreme: { size: 35, label: '익스트림' },
+};
 const ns = 'http://www.w3.org/2000/svg';
 let level = 'easy', maze, position, steps, trail, hint, assisted, finished;
 let elapsed = 0, startedAt = null, pointer = null;
