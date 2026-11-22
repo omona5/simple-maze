@@ -7,6 +7,8 @@ const levels = { easy: { size: 9, label: '가볍게' }, normal: { size: 15, labe
 const ns = 'http://www.w3.org/2000/svg';
 let level = 'easy', maze, position, steps, trail, hint, assisted, finished;
 let elapsed = 0, startedAt = null, pointer = null;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let animationFrame = null, segment = null, movementQueue = [], visualPoint, visualTrail;
 let bests = {};
 try {
   const stored = JSON.parse(localStorage.getItem('simple-maze-bests') || '{}');
@@ -50,14 +52,59 @@ function renderBoard() {
   svg.append(element('rect', { x: gx - radius, y: gy - radius, width: radius * 2, height: radius * 2, rx: radius * .3, fill: '#c5e596' }));
   svg.append(element('path', { d: `M${gx - radius * .5} ${gy}l${radius * .35} ${radius * .4} ${radius * .7} ${-radius * .8}`, fill: 'none', stroke: '#243322', 'stroke-width': Math.max(1, cell * .04) }));
   svg.append(element('circle', { id: 'player', r: cell * .23, class: 'player' }));
+  visualPoint = center(position);
+  visualTrail = [...trail];
+  drawPlayer();
   renderPosition();
 }
 
-function renderPosition() {
-  const [x, y] = center(position);
+function drawPlayer(prefix = visualTrail) {
+  const [x, y] = visualPoint;
   $('#player').setAttribute('cx', x);
   $('#player').setAttribute('cy', y);
-  $('#trail').setAttribute('d', routePath(trail));
+  $('#trail').setAttribute('d', `${routePath(prefix)} L${x} ${y}`);
+}
+
+// Animate each accepted step in order, so fast swipes still follow corridor corners.
+function animateMovement(timestamp) {
+  animationFrame = null;
+  if (reducedMotion.matches) {
+    movementQueue = []; segment = null;
+    visualPoint = center(position); visualTrail = [...trail];
+    drawPlayer();
+    if (finished) win();
+    return;
+  }
+  let nextStart = timestamp;
+  while (segment || movementQueue.length) {
+    if (!segment) {
+      const next = movementQueue.shift();
+      segment = {
+        from: [...visualPoint], to: center(next.position), trail: next.trail,
+        prefix: next.trail.length < visualTrail.length ? visualTrail.slice(0, -1) : visualTrail,
+        start: nextStart,
+        duration: Math.max(24, 110 / (1 + movementQueue.length * .3)),
+        smooth: movementQueue.length === 0,
+      };
+    }
+    const progress = Math.min(1, (timestamp - segment.start) / segment.duration);
+    const blend = segment.smooth ? progress * progress * (3 - 2 * progress) : progress;
+    visualPoint = segment.from.map((value, axis) => value + (segment.to[axis] - value) * blend);
+    if (progress < 1) {
+      drawPlayer(segment.prefix);
+      animationFrame = requestAnimationFrame(animateMovement);
+      return;
+    }
+    // Carry spare frame time into the next step, avoiding a pause at each cell.
+    nextStart = segment.start + segment.duration;
+    visualTrail = segment.trail;
+    segment = null;
+  }
+  drawPlayer();
+  if (finished) win();
+}
+
+function renderPosition() {
   $('#hint-path').setAttribute('d', hint ? routePath(solve(maze, position)) : '');
   $('#moves').replaceChildren(document.createTextNode(String(steps)));
   const unit = document.createElement('span');
@@ -65,6 +112,8 @@ function renderPosition() {
 }
 
 function reset(newMaze = true) {
+  if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+  animationFrame = null; segment = null; movementQueue = [];
   if ($('#win-dialog').open) $('#win-dialog').close();
   if (newMaze) maze = generateMaze(levels[level].size);
   position = 0; steps = 0; trail = [0]; hint = false; assisted = false; finished = false;
@@ -90,7 +139,12 @@ function go(direction) {
   position = next; steps++;
   if (trail.at(-2) === next) trail.pop(); else trail.push(next);
   renderPosition();
-  if (position === maze.cells.length - 1) win();
+  if (position === maze.cells.length - 1) {
+    // Stop the clock on the winning input, and show results after the dot arrives.
+    elapsed = time(); startedAt = null; finished = true; pointer = null;
+  }
+  movementQueue.push({ position, trail: [...trail] });
+  if (animationFrame === null) animationFrame = requestAnimationFrame(animateMovement);
 }
 
 function win() {
