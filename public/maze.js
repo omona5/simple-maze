@@ -35,6 +35,19 @@ export function move(maze, position, direction) {
   return position + dy * maze.size + dx;
 }
 
+// Continue straight, stopping at the first junction, corner, dead end, or exit.
+export function slide(maze, position, direction) {
+  const route = [];
+  while (true) {
+    const next = move(maze, position, direction);
+    if (next === position) return route;
+    route.push(next);
+    position = next;
+    const exits = maze.cells[position].filter(wall => !wall).length;
+    if (exits >= 3 || position === maze.cells.length - 1) return route;
+  }
+}
+
 export function solve(maze, start, goal = maze.cells.length - 1) {
   const parents = new Map([[start, null]]);
   const queue = [start];

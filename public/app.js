@@ -1,4 +1,4 @@
-import { generateMaze, move, solve } from './maze.js';
+import { generateMaze, slide, solve } from './maze.js';
 
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');
@@ -127,28 +127,30 @@ function reset(newMaze = true) {
   $('#hint').setAttribute('aria-pressed', 'false');
   const best = bests[level];
   $('#best').textContent = Number.isFinite(best) && best > 0 ? formatTime(best) : '—';
-  $('#status').textContent = '주황색 점을 움직여 초록색 출구에 도착하세요.';
+  $('#status').textContent = '한 번 조작하면 갈림길이나 벽 앞까지 이동해요.';
   renderBoard();
 }
 
 function go(direction) {
-  if (finished || $('#win-dialog').open) return;
-  const next = move(maze, position, direction);
-  if (next === position) {
+  if (finished || $('#win-dialog').open || segment || movementQueue.length) return;
+  const route = slide(maze, position, direction);
+  if (!route.length) {
     board.classList.remove('bump');
     void board.offsetWidth;
     board.classList.add('bump');
     return;
   }
   if (startedAt === null && !document.hidden) startedAt = performance.now();
-  position = next; steps++;
-  if (trail.at(-2) === next) trail.pop(); else trail.push(next);
+  for (const next of route) {
+    position = next; steps++;
+    if (trail.at(-2) === next) trail.pop(); else trail.push(next);
+    movementQueue.push({ position, trail: [...trail] });
+  }
   renderPosition();
   if (position === maze.cells.length - 1) {
     // Stop the clock on the winning input, and show results after the dot arrives.
     elapsed = time(); startedAt = null; finished = true; pointer = null;
   }
-  movementQueue.push({ position, trail: [...trail] });
   if (animationFrame === null) animationFrame = requestAnimationFrame(animateMovement);
 }
 
@@ -194,7 +196,8 @@ document.addEventListener('keydown', (event) => {
   if (event.target.closest('input, select, textarea, [contenteditable=true]')) return;
   const direction = keys[event.key] ?? keys[event.key.toLowerCase()];
   if (direction === undefined) return;
-  event.preventDefault(); go(direction);
+  event.preventDefault();
+  if (!event.repeat) go(direction);
 });
 
 board.addEventListener('pointerdown', (event) => {
@@ -211,9 +214,9 @@ board.addEventListener('pointermove', (event) => {
   if (distance < threshold) return;
   const horizontal = Math.abs(dx) > Math.abs(dy);
   const direction = horizontal ? dx > 0 ? 1 : 3 : dy > 0 ? 2 : 0;
-  const count = Math.min(maze.size, Math.floor(distance / threshold));
-  for (let i = 0; i < count && !finished; i++) go(direction);
-  if (pointer) { pointer.x = event.clientX; pointer.y = event.clientY; }
+  // One gesture is one move: a long swipe must not skip past junctions.
+  pointer = null;
+  go(direction);
 });
 for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) board.addEventListener(name, (event) => {
   if (pointer?.id === event.pointerId) pointer = null;
